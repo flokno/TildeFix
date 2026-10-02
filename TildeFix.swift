@@ -5,6 +5,8 @@ import Cocoa
 let iso_section: CGKeyCode = 0x0A  // keycode 10: ISO key left of 1
 let grave_tilde: CGKeyCode = 0x32  // keycode 50: ANSI grave/tilde
 
+var eventTap: CFMachPort?
+
 let setupDoneFile = (NSHomeDirectory() as NSString).appendingPathComponent(".config/tildefix/setup_done")
 
 // MARK: - Setup state
@@ -128,11 +130,10 @@ func eventCallback(
     refcon: UnsafeMutableRawPointer?
 ) -> Unmanaged<CGEvent>? {
     if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-        if let refcon = refcon {
-            let tap = Unmanaged<CFMachPort>.fromOpaque(refcon).takeUnretainedValue()
+        if let tap = eventTap {
             CGEvent.tapEnable(tap: tap, enable: true)
         }
-        return Unmanaged.passRetained(event)
+        return Unmanaged.passUnretained(event)
     }
 
     if type == .keyDown || type == .keyUp {
@@ -142,12 +143,13 @@ func eventCallback(
         }
     }
 
-    return Unmanaged.passRetained(event)
+    return Unmanaged.passUnretained(event)
 }
 
 // MARK: - Setup flow
 
 func startEventTap(_ tap: CFMachPort) {
+    eventTap = tap
     CGEvent.tapEnable(tap: tap, enable: true)
     let runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
     CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
@@ -168,7 +170,7 @@ func runSetupFlow() {
     print("""
 
     ╔══════════════════════════════════════════╗
-    ║           TildeFix v1.0.3               ║
+    ║           TildeFix v1.0.4               ║
     ║   § → `  and  ± → ~  on ISO keyboards  ║
     ╚══════════════════════════════════════════╝
     """)

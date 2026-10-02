@@ -15,6 +15,7 @@ build:
 
 install: build
 	@mkdir -p ~/Applications
+	rm -rf ~/Applications/$(APP_NAME).app
 	cp -R $(APP_DIR) ~/Applications/$(APP_NAME).app
 	@echo "Installed to ~/Applications/$(APP_NAME).app"
 	@echo ""
