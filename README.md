@@ -14,10 +14,7 @@ Tools like [Karabiner-Elements](https://github.com/pqrs-org/Karabiner-Elements) 
 
 ## The Solution
 
-TildeFix is a single-file Swift program (~100 lines) that uses a `CGEventTap` to:
-
-1. **Remap the ISO section key** (keycode 10) to the ANSI grave/tilde key (keycode 50) — fixing `` ` `` and `~` on any layout
-2. **Rotate input sources with Cmd+Shift** — press Cmd+Shift (without any other key) to cycle through your enabled keyboard layouts
+TildeFix is a single-file Swift program that uses a `CGEventTap` to **remap the ISO section key** (keycode 10) to the ANSI grave/tilde key (keycode 50) — fixing `` ` `` and `~` on any layout.
 
 This operates at the CoreGraphics event level, so it works with:
 - All keyboard layouts (US, Bulgarian Phonetic, etc.)
@@ -81,11 +78,7 @@ Then remove TildeFix from Accessibility and Input Monitoring in System Settings.
 
 ## How It Works
 
-TildeFix creates a `CGEventTap` that intercepts keyboard events at the session level:
-
-- **Key remap**: When keycode 10 (ISO section key: `§`/`±`) is detected on `keyDown` or `keyUp`, it's rewritten to keycode 50 (ANSI grave/tilde: `` ` ``/`~`). The keyboard layout then interprets keycode 50 normally — producing `` ` ``/`~` on US layout, `ч`/`Ч` on Bulgarian Phonetic, etc.
-
-- **Layout switching**: When Cmd+Shift are pressed and released together (without any other key in between), the next enabled keyboard input source is selected via the `TISSelectInputSource` API.
+TildeFix creates a `CGEventTap` that intercepts keyboard events at the session level. When keycode 10 (ISO section key: `§`/`±`) is detected on `keyDown` or `keyUp`, it's rewritten to keycode 50 (ANSI grave/tilde: `` ` ``/`~`). The keyboard layout then interprets keycode 50 normally — producing `` ` ``/`~` on US layout, `ч`/`Ч` on Bulgarian Phonetic, etc.
 
 ## Why not...
 

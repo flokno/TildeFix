@@ -1,13 +1,9 @@
 import Foundation
 import CoreGraphics
-import Carbon
 import Cocoa
 
 let iso_section: CGKeyCode = 0x0A  // keycode 10: ISO key left of 1
 let grave_tilde: CGKeyCode = 0x32  // keycode 50: ANSI grave/tilde
-
-var cmdShiftDown = false
-var otherKeyPressed = false
 
 let setupDoneFile = (NSHomeDirectory() as NSString).appendingPathComponent(".config/tildefix/setup_done")
 
@@ -111,8 +107,7 @@ func openLoginItemsSettings() {
 
 func tryCreateEventTap() -> CFMachPort? {
     let eventMask: CGEventMask = (1 << CGEventType.keyDown.rawValue) |
-                                  (1 << CGEventType.keyUp.rawValue) |
-                                  (1 << CGEventType.flagsChanged.rawValue)
+                                  (1 << CGEventType.keyUp.rawValue)
 
     return CGEvent.tapCreate(
         tap: .cgSessionEventTap,
@@ -122,45 +117,6 @@ func tryCreateEventTap() -> CFMachPort? {
         callback: eventCallback,
         userInfo: nil
     )
-}
-
-// MARK: - Input source switching
-
-func switchToNextInputSource() {
-    guard let sourceList = TISCreateInputSourceList(
-        [kTISPropertyInputSourceIsEnabled: true, kTISPropertyInputSourceCategory: kTISCategoryKeyboardInputSource!] as CFDictionary,
-        false
-    )?.takeRetainedValue() as? [TISInputSource] else { return }
-
-    let keyboards = sourceList.filter { source in
-        guard let category = TISGetInputSourceProperty(source, kTISPropertyInputSourceCategory) else { return false }
-        let cat = Unmanaged<CFString>.fromOpaque(category).takeUnretainedValue() as String
-        return cat == (kTISCategoryKeyboardInputSource as String)
-    }
-
-    guard keyboards.count > 1 else { return }
-
-    guard let current = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue() else { return }
-    let currentID: String
-    if let idPtr = TISGetInputSourceProperty(current, kTISPropertyInputSourceID) {
-        currentID = Unmanaged<CFString>.fromOpaque(idPtr).takeUnretainedValue() as String
-    } else {
-        currentID = ""
-    }
-
-    var currentIndex = 0
-    for (i, kb) in keyboards.enumerated() {
-        if let idPtr = TISGetInputSourceProperty(kb, kTISPropertyInputSourceID) {
-            let id = Unmanaged<CFString>.fromOpaque(idPtr).takeUnretainedValue() as String
-            if id == currentID {
-                currentIndex = i
-                break
-            }
-        }
-    }
-
-    let nextIndex = (currentIndex + 1) % keyboards.count
-    TISSelectInputSource(keyboards[nextIndex])
 }
 
 // MARK: - Event tap callback
@@ -179,31 +135,10 @@ func eventCallback(
         return Unmanaged.passRetained(event)
     }
 
-    let keyCode = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
-
     if type == .keyDown || type == .keyUp {
+        let keyCode = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
         if keyCode == iso_section {
             event.setIntegerValueField(.keyboardEventKeycode, value: Int64(grave_tilde))
-        }
-        if cmdShiftDown {
-            otherKeyPressed = true
-        }
-    }
-
-    if type == .flagsChanged {
-        let flags = event.flags
-        let hasCmd = flags.contains(.maskCommand)
-        let hasShift = flags.contains(.maskShift)
-
-        if hasCmd && hasShift && !cmdShiftDown {
-            cmdShiftDown = true
-            otherKeyPressed = false
-        } else if cmdShiftDown && !(hasCmd && hasShift) {
-            if !otherKeyPressed {
-                switchToNextInputSource()
-            }
-            cmdShiftDown = false
-            otherKeyPressed = false
         }
     }
 
@@ -221,7 +156,7 @@ func startEventTap(_ tap: CFMachPort) {
 
     ══════════════════════════════════════════
     TildeFix is running.
-      § → `    ± → ~    Cmd+Shift → switch layout
+      § → `    ± → ~
     ══════════════════════════════════════════
     """)
 }
@@ -233,7 +168,7 @@ func runSetupFlow() {
     print("""
 
     ╔══════════════════════════════════════════╗
-    ║           TildeFix v1.0.2               ║
+    ║           TildeFix v1.0.3               ║
     ║   § → `  and  ± → ~  on ISO keyboards  ║
     ╚══════════════════════════════════════════╝
     """)
